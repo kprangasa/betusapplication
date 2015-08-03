@@ -2,16 +2,12 @@ package com.lotus.users;
 
 import java.math.BigDecimal;
 
-public class Admin {
+public abstract class User {
 	private Long id;
 	private String username;
 	private String password;
 	private BigDecimal balance;
 	private String type;
-	
-	
-	
-	
 	
 	public Long getId() {
 		return id;
@@ -43,8 +39,4 @@ public class Admin {
 	public void setType(String type) {
 		this.type = type;
 	}
-	
-	
-	
-	
 }
