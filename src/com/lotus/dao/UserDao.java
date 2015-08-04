@@ -1,8 +1,8 @@
 package com.lotus.dao;
 
+import java.math.BigDecimal;
 import java.util.List;
 
-import com.lotus.event.Event;
 import com.lotus.users.User;
 
 
@@ -10,7 +10,7 @@ import com.lotus.users.User;
 public interface UserDao {
 	void createUser(User newUser);
 	List<User> listUsers();
-	void addBalance(User user);
+	void addBalance(User user, BigDecimal balance);
 	User getUserByName(String name);
 	
 	
