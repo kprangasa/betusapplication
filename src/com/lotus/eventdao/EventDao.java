@@ -9,5 +9,6 @@ public interface EventDao {
 	Event getEventByCode(String eventCode);
 	void createEvent(Event newEvent);
 	void updateEvent(Event existingEvent);
+	Event getEventById(Long id);
 	
 }

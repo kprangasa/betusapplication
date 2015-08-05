@@ -19,13 +19,12 @@ public enum SportsCategory {
 		this.sportsCategory = sportsCategory;
 	}
 
-	public static SportsCategory getBycode(String code) {
-		for (SportsCategory sports : SportsCategory.values()) {
-			if (sports.sportsCategory.equals(code)) {
-				return sports;
+	public static SportsCategory getSportsCode(String sportsCode){
+		for(SportsCategory sportsCategory: SportsCategory.values()){
+			if(sportsCategory.toString().equals(sportsCode)){
+				return sportsCategory;
 			}
 		}
-
 		return null;
 	}
 }

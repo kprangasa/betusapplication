@@ -2,6 +2,8 @@ package com.lotus.event;
 
 import java.util.Date;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
+
 import com.lotus.eventdao.EventDao;
 import com.lotus.eventdao.EventOJDBCDAO;
 import com.lotus.users.BetStatus;
@@ -9,31 +11,25 @@ import com.lotus.users.BetStatus;
 public class Event {
 	private Long id;
 	private String eventCode;
-	private SportsCategory sportsCategoryCode;
+	private SportsCategory sportsCode;
 	private Date eventStartDate;
 	private BetStatus betStatus;
-	
-	
-	public Event(String eventCode, SportsCategory sportsCategoryCode,
+
+	public Event(String eventCode, SportsCategory sportsCode,
 			Date eventStartDate) {
 		super();
 		this.eventCode = eventCode;
-		this.sportsCategoryCode = sportsCategoryCode;
+		this.sportsCode = sportsCode;
 		this.eventStartDate = eventStartDate;
 	}
-	public Event(){
-		
-	}
+	
 	
 	
 
-	public Event(Long id, String eventCode, SportsCategory sportsCategoryCode,
+	public Event(Long id, String eventCode, SportsCategory sportsCode,
 			Date eventStartDate, BetStatus betStatus) {
-		super();
+		this(eventCode, sportsCode, eventStartDate);
 		this.id = id;
-		this.eventCode = eventCode;
-		this.sportsCategoryCode = sportsCategoryCode;
-		this.eventStartDate = eventStartDate;
 		this.betStatus = betStatus;
 	}
 
@@ -51,13 +47,15 @@ public class Event {
 	public void setEventCode(String eventCode) {
 		this.eventCode = eventCode;
 	}
-	public SportsCategory getSportsCategoryCode() {
-		return sportsCategoryCode;
+	public SportsCategory getSportsCode() {
+		return sportsCode;
 	}
-	public void setSportsCategoryCode(SportsCategory sportsCategoryCode) {
-		this.sportsCategoryCode = sportsCategoryCode;
+	public void setSportsCategoryCode(SportsCategory sportsCode) {
+		this.sportsCode = sportsCode;
 	}
+	
 	public Date getEventStartDate() {
+		
 		return eventStartDate;
 	}
 	public void setEventStartDate(Date eventStartDate) {
@@ -73,21 +71,32 @@ public class Event {
 	
 	
 	
+	
+	
+	@Override
+	public String toString() {
+		
+
+		return "Event [id=" + id + ", eventCode=" + eventCode
+				+ ", sportsCategoryCode=" + sportsCode
+				+ ", eventStartDate=" +eventStartDate + ", betStatus="
+				+ betStatus + "]";
+	}
+
 	public void persist() {
 		EventDao eventDao = EventOJDBCDAO.getInstance();
-		Event event = eventDao.getEventByCode(eventCode);
-		
+		Event event  = eventDao.getEventByCode(eventCode);
 		if(event == null) {
 			eventDao.createEvent(this);
-			System.out.println("Created event "+this);
+			System.out.println("Event created.");
 		} else {
-			
 			this.setId(event.getId());
 			
-			boolean hasChanged = !event.getSportsCategoryCode().equals(this.getSportsCategoryCode()) || ! event.getEventStartDate().equals(this.getEventStartDate());
-			if(hasChanged) {
+			boolean hasChanged = !event.getSportsCode().equals(this.getSportsCode()) || event.getEventStartDate().compareTo(this.getEventStartDate())!=0;
+			if(hasChanged&&this.getBetStatus() == BetStatus.OPEN) {
+				System.out.println("Event to update :" + this);
 				eventDao.updateEvent(this);
-				System.out.println("Updated Animal "+this);
+				System.out.println("Event updated :"+this);
 			} else {
 				System.out.println("Ignored persistence, nothing changed for event "+this);
 			}

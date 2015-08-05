@@ -24,7 +24,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.lotus.event.Event;
+import com.lotus.event.Outcome;
+import com.lotus.event.Result;
 import com.lotus.event.SportsCategory;
+import com.lotus.eventdao.EventDao;
+import com.lotus.eventdao.EventOJDBCDAO;
+import com.lotus.eventdao.OutcomeDao;
+import com.lotus.eventdao.OutcomeOJDBCDAO;
 import com.lotus.userdao.UserDao;
 import com.lotus.userdao.UserOJDBCDAO;
 import com.lotus.users.User;
@@ -35,11 +41,13 @@ import com.sun.jersey.api.client.ClientResponse.Status;
 public class BetusRestApiAdmin {
 	
 	private UserDao userDAO = UserOJDBCDAO.getInstance();
+	private EventDao eventDAO = EventOJDBCDAO.getInstance();
+	private OutcomeDao outcomeDAO = OutcomeOJDBCDAO.getInstance();
 	User loggedInUser = BetusRestApi.getLoggedInUser();
 	@Path("/users")
 	@GET
 	@Produces("application/json")
-	public Response list() throws JsonGenerationException, JsonMappingException, IOException {
+	public Response listCustomers() throws JsonGenerationException, JsonMappingException, IOException {
 		System.out.println(this.loggedInUser);
 		List<User> user = userDAO.listUsers();
 		ObjectMapper mapper = new ObjectMapper();
@@ -100,7 +108,6 @@ public class BetusRestApiAdmin {
 		try {
 				BigDecimal balanceToAdd = new BigDecimal(balance);
 				User user = userDAO.getUserByName(username);
-				System.out.println(user);
 				userDAO.addBalance(user, balanceToAdd);
 				System.out.println(user.getBalance().add(balanceToAdd));
 				jsonObject.put("success", true);
@@ -160,6 +167,174 @@ public class BetusRestApiAdmin {
 		return Response.status(200).entity(jsonObject.toString()).build();
 		
 	}
+	@Path("/event/{eventCode}")
+	@GET
+	@Produces("application/json")
+	public Response showEvent(@PathParam("eventCode") String eventCode) throws JsonGenerationException, JsonMappingException, IOException {
+		System.out.println(this.loggedInUser);
+		 
+		Event event = eventDAO.getEventByCode(eventCode);
+		DateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.setDateFormat(simpleDateFormat);
+		JSONObject jsonObject = new JSONObject();
+		String response = "{}"; 
+
+		if(this.loggedInUser == null|| this.loggedInUser.getType().equals(UserType.CUSTOMER)){
+			
+			return returnForbiddenResponse(jsonObject);
+		}
+		else if(event == null){
+			return Response.status(200).entity(response).build();
+		}
+		else {
+			response = mapper.writeValueAsString(event);
+			return Response.status(200).entity(response).build();
+		}
+		
+	}
+	@Path("/event")
+	@GET
+	@Produces("application/json")
+	public Response listEvents() throws JsonGenerationException, JsonMappingException, IOException {
+		System.out.println(this.loggedInUser);
+		 
+		List<Event> events = eventDAO.listEvents();
+		DateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+		ObjectMapper mapper = new ObjectMapper();
+		mapper.setDateFormat(simpleDateFormat);
+		JSONObject jsonObject = new JSONObject();
+		String response = "{}"; 
+
+		if(this.loggedInUser == null|| this.loggedInUser.getType().equals(UserType.CUSTOMER)){
+			
+			return returnForbiddenResponse(jsonObject);
+		}
+		else {
+			response = mapper.writeValueAsString(events);
+			return Response.status(200).entity(response).build();
+		}
+		
+	}
+	@Path("/outcome")
+	@POST
+	@Produces("application/json")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	public Response createOutcome(@FormParam("description") String description, @FormParam("eventId") String eventId)  throws JSONException {
+		JSONObject jsonObject = new JSONObject();
+		
+		if(this.loggedInUser == null|| this.loggedInUser.getType().equals(UserType.CUSTOMER)){
+			return returnForbiddenResponse(jsonObject);
+		}
+		else if(description == null || eventId == null) {
+			return returnSuccessFalse(jsonObject);
+		}
+		else if(description.length()<=0 ||!eventId.matches("[0-9]+")){
+			return returnSuccessFalse(jsonObject);
+		}
+		
+		
+		try {
+				Outcome outcome = new Outcome(description, new Long(eventId), Result.NONE);
+				if(outcome.persist()){
+				jsonObject.put("success", true);
+				return Response.status(200).entity(jsonObject.toString()).build();
+				}
+				jsonObject.put("Error", "No updating of outcome");
+				return Response.status(200).entity(jsonObject.toString()).build();
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			jsonObject.put("success", false);
+			jsonObject.put("error", "This error occured.");
+			return Response.status(400).entity(jsonObject.toString()).build();
+		}
+		
+	}
+	@Path("/outcome/result")
+	@POST
+	@Produces("application/json")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	public Response resultOutcome(@FormParam("id") String id, @FormParam("result") String result)  throws JSONException {
+		JSONObject jsonObject = new JSONObject();
+		
+		if(this.loggedInUser == null|| this.loggedInUser.getType().equals(UserType.CUSTOMER)){
+			return returnForbiddenResponse(jsonObject);
+		}
+		else if(id == null ||  result == null) {
+			return returnSuccessFalse(jsonObject);
+		}
+		else if(id.length()<=0 ||!id.matches("[0-9]+")){
+			return returnSuccessFalse(jsonObject);
+		}
+		else if(Result.getResult(result) == null || Result.getResult(result).equals(Result.NONE)){
+			return returnSuccessFalse(jsonObject);
+		}
+		
+		
+		try {
+				Outcome outcome = outcomeDAO.getOutcomeById(new Long(id));
+				outcomeDAO.setOutcomeResult(outcome, result);
+				for(Outcome outcomes: outcomeDAO.getListOfOutcomeById(outcome.getEventId())){
+					if(!outcomes.getResult().equals(Result.NONE)){
+						break;
+					}
+				}
+				jsonObject.put("success", true);
+				return Response.status(200).entity(jsonObject.toString()).build();
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			jsonObject.put("success", false);
+			jsonObject.put("error", "This error occured.");
+			return Response.status(400).entity(jsonObject.toString()).build();
+		}
+		
+	}
+	@Path("/outcome")
+	@GET
+	@Produces("application/json")
+	public Response listOutcomes() throws JsonGenerationException, JsonMappingException, IOException {
+		System.out.println(this.loggedInUser);
+		 
+		List<Outcome> outcomes = outcomeDAO.listOutcomes();
+		ObjectMapper mapper = new ObjectMapper();
+		JSONObject jsonObject = new JSONObject();
+		String response = "{}"; 
+
+		if(this.loggedInUser == null|| this.loggedInUser.getType().equals(UserType.CUSTOMER)){
+			
+			return returnForbiddenResponse(jsonObject);
+		}
+		else {
+			response = mapper.writeValueAsString(outcomes);
+			return Response.status(200).entity(response).build();
+		}
+		
+	}
+	@Path("/outcome/{eventCode}")
+	@GET
+	@Produces("application/json")
+	public Response showOutcome(@PathParam("eventCode") String eventCode) throws JsonGenerationException, JsonMappingException, IOException {
+		System.out.println(this.loggedInUser);
+		List<Outcome> outcomes = outcomeDAO.getListOfOutcome(eventCode);
+		ObjectMapper mapper = new ObjectMapper();
+		JSONObject jsonObject = new JSONObject();
+		String response = "{}"; 
+
+		if(this.loggedInUser == null|| this.loggedInUser.getType().equals(UserType.CUSTOMER)){
+			
+			return returnForbiddenResponse(jsonObject);
+		}
+		else if(outcomes.isEmpty()){
+			return Response.status(200).entity(response).build();
+		}
+		else {
+			response = mapper.writeValueAsString(outcomes);
+			return Response.status(200).entity(response).build();
+		}
+		
+	}
 	@Path("/event")
 	@POST
 	@Produces("application/json")
@@ -176,16 +351,16 @@ public class BetusRestApiAdmin {
 		else if(eventCode.length()!=5 || eventCode.contains(" ")){
 			return returnSuccessFalse(jsonObject);
 		}
-		else if(getSportsCode(sportsCode).equals(null)){
+		else if(SportsCategory.getSportsCode(sportsCode) == null){
 			return returnSuccessFalse(jsonObject);
 		}
 		
 		
 		try {
-				DateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:SS");
+				DateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
 				Date eventStartDate = simpleDateFormat.parse(startDate);
+				simpleDateFormat.format(eventStartDate);
 				Event newEvent = new Event(eventCode, SportsCategory.valueOf(sportsCode), eventStartDate);
-				System.out.println(eventCode);
 				newEvent.persist();
 				jsonObject.put("success", true);
 			
@@ -207,12 +382,5 @@ public class BetusRestApiAdmin {
 		jsonObject.put("Forbidden", "Log in as admin.");
 		return Response.status(Status.FORBIDDEN).entity(jsonObject.toString()).build();
 	}
-	private SportsCategory getSportsCode(String sportsCode){
-		for(SportsCategory sportsCategory: SportsCategory.values()){
-			if(sportsCategory.equals(SportsCategory.valueOf(sportsCode))){
-				return sportsCategory;
-			}
-		}
-		return null;
-	}
+	
 }
