@@ -4,8 +4,8 @@ import java.math.BigDecimal;
 
 import org.codehaus.jackson.annotate.JsonIgnore;
 
-import com.lotus.dao.UserDao;
-import com.lotus.dao.UserOJDBCDAO;
+import com.lotus.userdao.UserDao;
+import com.lotus.userdao.UserOJDBCDAO;
 
 public class User {
 	private Long id;

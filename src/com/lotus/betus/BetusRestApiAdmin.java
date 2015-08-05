@@ -2,6 +2,9 @@ package com.lotus.betus;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
@@ -20,8 +23,10 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.lotus.dao.UserDao;
-import com.lotus.dao.UserOJDBCDAO;
+import com.lotus.event.Event;
+import com.lotus.event.SportsCategory;
+import com.lotus.userdao.UserDao;
+import com.lotus.userdao.UserOJDBCDAO;
 import com.lotus.users.User;
 import com.lotus.users.UserType;
 import com.sun.jersey.api.client.ClientResponse.Status;
@@ -41,7 +46,8 @@ public class BetusRestApiAdmin {
 		JSONObject jsonObject = new JSONObject();
 		String response = "{}"; 
 
-		if(this.loggedInUser == null|| this.loggedInUser.getType() == UserType.CUSTOMER|| user.isEmpty()){
+		if(this.loggedInUser == null|| this.loggedInUser.getType().equals(UserType.CUSTOMER)){
+			
 			return returnForbiddenResponse(jsonObject);
 		}
 		else {
@@ -51,10 +57,7 @@ public class BetusRestApiAdmin {
 		
 	}
 
-	private Response returnForbiddenResponse(JSONObject jsonObject) {
-		jsonObject.put("success", false);
-		return Response.status(Status.FORBIDDEN).entity(jsonObject.toString()).build();
-	}
+	
 
 	@Path("/users/{name}")
 	@GET
@@ -68,7 +71,7 @@ public class BetusRestApiAdmin {
 			jsonObject.put("success", false);
 			return Response.status(Status.OK).entity(jsonObject.toString()).build();
 		}
-		else if(this.loggedInUser == null|| this.loggedInUser.getType() == UserType.CUSTOMER){
+		else if(this.loggedInUser == null|| this.loggedInUser.getType().equals(UserType.CUSTOMER)){
 			return returnForbiddenResponse(jsonObject);
 		}
 		else{
@@ -83,16 +86,14 @@ public class BetusRestApiAdmin {
 	public Response addBalance(@FormParam("username") String username, @FormParam("balance") String balance)  throws JSONException {
 		JSONObject jsonObject = new JSONObject();
 		
-		if(this.loggedInUser == null|| this.loggedInUser.getType() == UserType.CUSTOMER){
+		if(this.loggedInUser == null|| this.loggedInUser.getType().equals(UserType.CUSTOMER)){
 			return returnForbiddenResponse(jsonObject);
 		}
-		else if(username == null || username.isEmpty()|| balance.isEmpty()|| balance == null ) {
-			jsonObject.put("success", false);
-			return Response.status(200).entity(jsonObject.toString()).build();
+		else if(username == null || balance == null || username.isEmpty()|| balance.isEmpty() ) {
+			return returnSuccessFalse(jsonObject);
 		}
 		else if(!balance.matches("[0-9]+")){
-			jsonObject.put("success", false);
-			return Response.status(200).entity(jsonObject.toString()).build();
+			return returnSuccessFalse(jsonObject);
 		}
 		
 		
@@ -108,7 +109,7 @@ public class BetusRestApiAdmin {
 		} catch (Exception e) {
 			jsonObject.put("success", false);
 			jsonObject.put("errorMessage", "This error occured.");
-			
+			return Response.status(400).entity(jsonObject.toString()).build();
 		}
 		return Response.status(200).entity(jsonObject.toString()).build();
 		
@@ -119,24 +120,23 @@ public class BetusRestApiAdmin {
 	public Response createUser(@FormParam("username") String username, @FormParam("balance") String balance, @FormParam("password") String password, @FormParam("type") String type)  throws JSONException {
 		JSONObject jsonObject = new JSONObject();
 		
-		if(this.loggedInUser == null|| this.loggedInUser.getType() == UserType.CUSTOMER){
+		if(this.loggedInUser == null|| this.loggedInUser.getType().equals(UserType.CUSTOMER)){
 			return returnForbiddenResponse(jsonObject);
 		}
-		else if(username == null || username.length() > 10 || username.isEmpty()) {
-			jsonObject.put("success", false);
-			return Response.status(200).entity(jsonObject.toString()).build();
+		else if(username == null || balance == null || password == null || type == null) {
+			return returnSuccessFalse(jsonObject);
 		}
-		else if(password.length() >10 || password.length() < 7 || password.isEmpty() ||password == null){
-			jsonObject.put("success", false);
-			return Response.status(200).entity(jsonObject.toString()).build();
+		else if(username.length()>10 || username.isEmpty()){
+			return returnSuccessFalse(jsonObject);
 		}
-		else if(balance.isEmpty()|| balance == null || !balance.matches("[0-9]+")){
-			jsonObject.put("success", false);
-			return Response.status(200).entity(jsonObject.toString()).build();
+		else if(password.length() >10 || password.length() < 7){
+			return returnSuccessFalse(jsonObject);
+		}
+		else if(balance.isEmpty() || !balance.matches("[0-9]+")){
+			return returnSuccessFalse(jsonObject);
 		}
 		else if(!type.equals(UserType.ADMIN.toString()) || !type.equals(UserType.CUSTOMER.toString())){
-			jsonObject.put("success", false);
-			return Response.status(200).entity(jsonObject.toString()).build();
+			return returnSuccessFalse(jsonObject);
 		}
 		
 		
@@ -154,10 +154,65 @@ public class BetusRestApiAdmin {
 			
 		} catch (Exception e) {
 			jsonObject.put("success", false);
-			jsonObject.put("errorMessage", "This error occured.");
-			
+			jsonObject.put("error", "This error occured.");
+			return Response.status(400).entity(jsonObject.toString()).build();
 		}
 		return Response.status(200).entity(jsonObject.toString()).build();
 		
+	}
+	@Path("/event")
+	@POST
+	@Produces("application/json")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	public Response createEvent(@FormParam("eventCode") String eventCode, @FormParam("sportsCode") String sportsCode, @FormParam("startDate") String startDate)  throws JSONException {
+		JSONObject jsonObject = new JSONObject();
+		
+		if(this.loggedInUser == null|| this.loggedInUser.getType().equals(UserType.CUSTOMER)){
+			return returnForbiddenResponse(jsonObject);
+		}
+		else if(eventCode == null || sportsCode == null || startDate == null) {
+			return returnSuccessFalse(jsonObject);
+		}
+		else if(eventCode.length()!=5 || eventCode.contains(" ")){
+			return returnSuccessFalse(jsonObject);
+		}
+		else if(getSportsCode(sportsCode).equals(null)){
+			return returnSuccessFalse(jsonObject);
+		}
+		
+		
+		try {
+				DateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:SS");
+				Date eventStartDate = simpleDateFormat.parse(startDate);
+				Event newEvent = new Event(eventCode, SportsCategory.valueOf(sportsCode), eventStartDate);
+				System.out.println(eventCode);
+				newEvent.persist();
+				jsonObject.put("success", true);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			jsonObject.put("success", false);
+			jsonObject.put("error", "This error occured.");
+			return Response.status(400).entity(jsonObject.toString()).build();
+		}
+		return Response.status(200).entity(jsonObject.toString()).build();
+		
+	}
+
+	private Response returnSuccessFalse(JSONObject jsonObject) {
+		jsonObject.put("success", false);
+		return Response.status(200).entity(jsonObject.toString()).build();
+	}
+	private Response returnForbiddenResponse(JSONObject jsonObject) {
+		jsonObject.put("Forbidden", "Log in as admin.");
+		return Response.status(Status.FORBIDDEN).entity(jsonObject.toString()).build();
+	}
+	private SportsCategory getSportsCode(String sportsCode){
+		for(SportsCategory sportsCategory: SportsCategory.values()){
+			if(sportsCategory.equals(SportsCategory.valueOf(sportsCode))){
+				return sportsCategory;
+			}
+		}
+		return null;
 	}
 }

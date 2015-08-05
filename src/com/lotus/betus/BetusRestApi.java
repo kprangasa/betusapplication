@@ -13,6 +13,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -20,8 +21,8 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.lotus.dao.UserDao;
-import com.lotus.dao.UserOJDBCDAO;
+import com.lotus.userdao.UserDao;
+import com.lotus.userdao.UserOJDBCDAO;
 import com.lotus.users.User;
 
 @Path("/logins")
@@ -63,10 +64,13 @@ public class BetusRestApi {
 	    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 		public Response login(@FormParam("username") String username, @FormParam("password") String password)  throws JSONException {
 			JSONObject jsonObject = new JSONObject();
-			
 			if(username == null || password == null) {
-				jsonObject.put("error", "bad request, username parameter is required");
+				jsonObject.put("error", "bad request, username and password parameter is required");
 				return Response.status(400).entity(jsonObject.toString()).build();
+			}
+			else if(userDAO.getUserByName(username) == null ){
+				jsonObject.put("success", false);
+				return Response.status(Status.BAD_REQUEST).entity(jsonObject.toString()).build();
 			}
 			
 			try {
@@ -80,8 +84,10 @@ public class BetusRestApi {
 				}
 				
 			} catch (Exception e) {
+				e.printStackTrace();
 				jsonObject.put("success", false);
-				jsonObject.put("errorMessage", "Cannot save animal.");
+				jsonObject.put("errorMessage", "Cannot login user.");
+				return Response.status(400).entity(jsonObject.toString()).build();
 			}
 
 			return Response.status(200).entity(jsonObject.toString()).build();
