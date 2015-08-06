@@ -6,6 +6,8 @@ import com.lotus.users.Bet;
 
 public interface BetDao {
 	void create(Bet bet);
-	List<Bet> list();
+	List<Bet> listAllBets();
+	List<Bet> listBetsOfCustomer(Long id);
+	Bet getBetById(Long customerId, Long eventId);
 	
 }

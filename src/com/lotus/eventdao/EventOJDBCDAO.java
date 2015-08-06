@@ -199,11 +199,12 @@ public class EventOJDBCDAO implements EventDao {
 		try {
 			connection = getConnection();
 			statement = connection
-					.prepareStatement("UPDATE events set sportsCategory = ?, eventStartDate = ? where id = ?");
+					.prepareStatement("UPDATE events set sportsCategory = ?, eventStartDate = ?, betStatus = ? where id = ?");
 			statement.setString(1, existingEvent.getSportsCode().toString());
 			statement.setTimestamp(2, new Timestamp(existingEvent
 					.getEventStartDate().getTime()));
-			statement.setLong(3, existingEvent.getId());
+			statement.setString(3, existingEvent.getBetStatus().toString());
+			statement.setLong(4, existingEvent.getId());
 
 			statement.executeUpdate();
 			connection.commit();
