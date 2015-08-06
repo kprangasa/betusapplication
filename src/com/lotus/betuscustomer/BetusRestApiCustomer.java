@@ -2,6 +2,9 @@ package com.lotus.betuscustomer;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -10,6 +13,7 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -23,10 +27,15 @@ import org.json.JSONObject;
 import com.lotus.betus.BetusRestApi;
 import com.lotus.event.Event;
 import com.lotus.event.Outcome;
+import com.lotus.event.SportsCategory;
 import com.lotus.eventdao.EventDao;
+import com.lotus.eventdao.EventDetails;
 import com.lotus.eventdao.EventOJDBCDAO;
 import com.lotus.eventdao.OutcomeDao;
+import com.lotus.eventdao.OutcomeDetails;
 import com.lotus.eventdao.OutcomeOJDBCDAO;
+import com.lotus.userdao.UserDao;
+import com.lotus.userdao.UserOJDBCDAO;
 import com.lotus.users.Bet;
 import com.lotus.users.BetStatus;
 import com.lotus.users.User;
@@ -37,43 +46,135 @@ import com.sun.jersey.api.client.ClientResponse.Status;
 public class BetusRestApiCustomer {
 	private OutcomeDao outcomeDAO = OutcomeOJDBCDAO.getInstance();
 	private EventDao eventDAO = EventOJDBCDAO.getInstance();
+	private UserDao userDAO = UserOJDBCDAO.getInstance();
 	User loggedInUser = BetusRestApi.getLoggedInUser();
+
+	
 	@GET
 	@Produces("application/json")
 	public Response listOutcomes() throws JsonGenerationException,
 			JsonMappingException, IOException {
-		class EventInfo{
-			List<Event> event = null;
-			List<Outcome> outcome = null;
-			
-			
-			public EventInfo(List<Event> event, List<Outcome> outcome) {
+		class EventInfoResponse{
+			EventDetails eventDetails;
+			List<OutcomeDetails> outcomeDetails;
+			public EventDetails getEventDetails() {
+				return eventDetails;
+			}
+			public void setEventDetails(EventDetails eventDetails) {
+				this.eventDetails = eventDetails;
+			}
+			public List<OutcomeDetails> getOutcomeDetails() {
+				return outcomeDetails;
+			}
+			public void setOutcomeDetails(List<OutcomeDetails> outcomeDetails) {
+				this.outcomeDetails = outcomeDetails;
+			}
+			private EventInfoResponse(EventDetails eventDetails,
+					List<OutcomeDetails> outcomeDetails) {
 				super();
-				this.event = event;
-				this.outcome = outcome;
+				this.eventDetails = eventDetails;
+				this.outcomeDetails = outcomeDetails;
 			}
-			public List<Event> getEvent() {
-				return event;
-			}
-			public List<Outcome> getOutcome() {
-				return outcome;
-			}
+			
 			
 		}
-
-		List<Event> events = eventDAO.listEvents();
-		List<Outcome> outcomes = outcomeDAO.listOutcomes();
-		EventInfo eventInfo = new EventInfo(events, outcomes);
+	
 		ObjectMapper mapper = new ObjectMapper();
 		JSONObject jsonObject = new JSONObject();
-		String response = "{}";
-
+		
 		if (this.loggedInUser == null
 				|| this.loggedInUser.getType().equals(UserType.ADMIN)) {
 
 			return returnForbiddenResponse(jsonObject);
 		} else {
-			response = mapper.writeValueAsString(eventInfo);
+			
+			List<EventInfoResponse> eventInfos = new ArrayList<EventInfoResponse>();
+			List<Event> events = eventDAO.listEvents();
+			List<OutcomeDetails> outcomeDetails =null;
+			for(Event event: events){
+				outcomeDetails= new ArrayList<OutcomeDetails>();
+				for(Outcome outcome: outcomeDAO.getListOfOutcomeById(event.getId())){
+					
+					
+					outcomeDetails.add(new OutcomeDetails(outcome.getDescription(), outcome.getId()));
+					
+				}
+				EventDetails eventDtails = new EventDetails(event.getId(), event.getSportsCode(), event.getEventStartDate());
+				eventInfos.add(new EventInfoResponse(eventDtails, outcomeDetails));
+			}
+			
+			String response = "{}";
+			DateFormat simpleDateFormat = new SimpleDateFormat(
+					"MM/dd/yyyy HH:mm:ss");
+			mapper.setDateFormat(simpleDateFormat);
+			response = mapper.writeValueAsString(eventInfos);
+			return Response.status(200).entity(response).build();
+		}
+
+	}
+	
+	@Path("/{sportsCode}")
+	@GET
+	@Produces("application/json")
+	public Response listOutcomesBySportsCode(@PathParam("sportsCode") String sportsCode) throws JsonGenerationException,
+			JsonMappingException, IOException {
+		class EventInfoResponse{
+			EventDetails eventDetails;
+			List<OutcomeDetails> outcomeDetails;
+			public EventDetails getEventDetails() {
+				return eventDetails;
+			}
+			public void setEventDetails(EventDetails eventDetails) {
+				this.eventDetails = eventDetails;
+			}
+			public List<OutcomeDetails> getOutcomeDetails() {
+				return outcomeDetails;
+			}
+			public void setOutcomeDetails(List<OutcomeDetails> outcomeDetails) {
+				this.outcomeDetails = outcomeDetails;
+			}
+			private EventInfoResponse(EventDetails eventDetails,
+					List<OutcomeDetails> outcomeDetails) {
+				super();
+				this.eventDetails = eventDetails;
+				this.outcomeDetails = outcomeDetails;
+			}
+			
+			
+		}
+	
+		ObjectMapper mapper = new ObjectMapper();
+		JSONObject jsonObject = new JSONObject();
+		
+		if (this.loggedInUser == null
+				|| this.loggedInUser.getType().equals(UserType.ADMIN)) {
+
+			return returnForbiddenResponse(jsonObject);
+		} else {
+			
+			List<EventInfoResponse> eventInfos = new ArrayList<EventInfoResponse>();
+			List<Event> events = eventDAO.listEvents();
+			List<OutcomeDetails> outcomeDetails =null;
+			for(Event event: events){
+				if(event.getSportsCode().equals(sportsCode)){
+				outcomeDetails= new ArrayList<OutcomeDetails>();
+				for(Outcome outcome: outcomeDAO.getListOfOutcomeById(event.getId())){
+					
+					
+					outcomeDetails.add(new OutcomeDetails(outcome.getDescription(), outcome.getId()));
+					
+				}
+				EventDetails eventDtails = new EventDetails(event.getId(), event.getSportsCode(), event.getEventStartDate());
+				eventInfos.add(new EventInfoResponse(eventDtails, outcomeDetails));
+				}
+				continue;
+			}
+			
+			String response = "{}";
+			DateFormat simpleDateFormat = new SimpleDateFormat(
+					"MM/dd/yyyy HH:mm:ss");
+			mapper.setDateFormat(simpleDateFormat);
+			response = mapper.writeValueAsString(eventInfos);
 			return Response.status(200).entity(response).build();
 		}
 
@@ -152,6 +253,7 @@ public class BetusRestApiCustomer {
 				return returnSuccessFalse(jsonObject);
 			}
 			if (bet.persist()) {
+				userDAO.addBalance(this.loggedInUser, betAmount.negate());
 				jsonObject.put("success", true);
 				return Response.status(200).entity(jsonObject.toString())
 						.build();

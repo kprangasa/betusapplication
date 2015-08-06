@@ -129,7 +129,8 @@ public class BetusRestApiAdminEvent {
 
 	}
 	private Response returnSuccessFalse(JSONObject jsonObject) {
-		return returnSuccessTrue(jsonObject);
+		jsonObject.put("success", false);
+		return Response.status(200).entity(jsonObject.toString()).build();
 	}
 
 	private Response returnForbiddenResponse(JSONObject jsonObject) {
@@ -145,7 +146,7 @@ public class BetusRestApiAdminEvent {
 	}
 
 	private Response returnSuccessTrue(JSONObject jsonObject) {
-		jsonObject.put("success", false);
+		jsonObject.put("success", true);
 		return Response.status(200).entity(jsonObject.toString()).build();
 	}
 }

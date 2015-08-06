@@ -38,13 +38,13 @@ import com.lotus.users.User;
 import com.lotus.users.UserType;
 import com.sun.jersey.api.client.ClientResponse.Status;
 
-@Path("/admin")
+@Path("/admin/users")
 public class BetusRestApiAdmin {
 
 	private UserDao userDAO = UserOJDBCDAO.getInstance();
 	User loggedInUser = BetusRestApi.getLoggedInUser();
 
-	@Path("/users")
+	@Path("")
 	@GET
 	@Produces("application/json")
 	public Response listCustomers() throws JsonGenerationException,
@@ -141,7 +141,7 @@ public class BetusRestApiAdmin {
 		} else if (balance.isEmpty() || !balance.matches("[0-9]+")) {
 			return returnSuccessFalse(jsonObject);
 		} else if (!type.equals(UserType.ADMIN.toString())
-				|| !type.equals(UserType.CUSTOMER.toString())) {
+				&& !type.equals(UserType.CUSTOMER.toString())) {
 			return returnSuccessFalse(jsonObject);
 		}
 
@@ -158,6 +158,7 @@ public class BetusRestApiAdmin {
 			}
 
 		} catch (Exception e) {
+			e.printStackTrace();
 			return returnErrorOccured(jsonObject);
 		}
 		return Response.status(200).entity(jsonObject.toString()).build();

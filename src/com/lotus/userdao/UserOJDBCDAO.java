@@ -48,7 +48,7 @@ public class UserOJDBCDAO implements UserDao{
 		try {
 			connection = getConnection();
 			statement = connection.prepareStatement(
-					"INSERT INTO USERS(id,username,balance,password,type) VALUES(users_sequences.nextval, ?, ?, ? ,?)");
+					"INSERT INTO USERS(id,username,balance,password,type) VALUES(users_seq.nextval, ?, ?, ? ,?)");
 			statement.setString(1, newUser.getUsername());
 			statement.setBigDecimal(2, newUser.getBalance());
 			statement.setString(3, newUser.getPassword());
@@ -62,7 +62,7 @@ public class UserOJDBCDAO implements UserDao{
 			} catch (SQLException e1) {
 				throw new RuntimeException("Database Error");
 			}
-			throw new RuntimeException("Error: user already exists.");
+			e.printStackTrace();
 		} finally {
 
 			if(statement != null) {
@@ -182,6 +182,47 @@ public class UserOJDBCDAO implements UserDao{
 			connection = getConnection();
 			statement = connection.prepareStatement("SELECT id, username, balance, password, type from users where username = ?");
 			statement.setString(1, username);
+			ResultSet rs = statement.executeQuery();
+		
+			if(rs.next()){
+				user = extractUserFromResult(rs);
+			}
+			
+		}catch(SQLException e){
+			
+			throw new IllegalStateException("Database error.");
+		}
+		finally {
+
+			if(statement != null) {
+				try {
+					statement.close();
+				} catch (SQLException e) {
+					throw new RuntimeException("Unable to close statement");
+				}
+			}
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (SQLException e) {
+					throw new RuntimeException("Unable to close connection");
+				}
+			}
+		}
+		return  user;
+	}
+	@Override
+	public User getUserById(Long userId) {
+		if(userId == null || userId == 0){
+			throw new IllegalArgumentException("Non existing users.");
+		}
+		User user = null;
+		Connection connection = null;
+		PreparedStatement statement = null;
+		try{
+			connection = getConnection();
+			statement = connection.prepareStatement("SELECT id, username, balance, password, type from users where id = ?");
+			statement.setLong(1, userId);
 			ResultSet rs = statement.executeQuery();
 		
 			if(rs.next()){

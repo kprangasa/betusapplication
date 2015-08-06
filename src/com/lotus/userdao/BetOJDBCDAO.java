@@ -228,4 +228,90 @@ public class BetOJDBCDAO implements BetDao {
 		return bet;
 	}
 
+	@Override
+	public List<Bet> getBetsByEvent(Long eventId) {
+		Connection connection = null;
+		PreparedStatement statement = null;
+		List<Bet> bets = new ArrayList<Bet>();
+
+		try {
+			connection = getConnection();
+			statement = connection
+					.prepareStatement("SELECT * FROM bets WHERE eventId = ?");
+			statement.setLong(1, eventId);
+
+			ResultSet resultSet = statement.executeQuery();
+			while (resultSet.next()) {
+				bets.add(extractBetFromResult(resultSet));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new RuntimeException("Database error.");
+		} finally {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					throw new RuntimeException("Unable to close connection.");
+				}
+			}
+			if (statement != null) {
+				try {
+					statement.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					throw new RuntimeException("Unable to close statement");
+				}
+			}
+		}
+
+		return bets;
+	}
+
+	@Override
+	public void settleBetById(Long id) {
+		if(id == null || id == 0){
+			throw new IllegalArgumentException("Updating non existing bet.");
+		}
+		Connection connection = null;
+		PreparedStatement statement = null;
+		
+		try {
+			connection = getConnection();
+			statement = connection.prepareStatement("UPDATE BETS set isSettled = 1 WHERE id = ?");
+			statement.setLong(1, id);
+			statement.executeUpdate();
+			connection.commit();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			try {
+				connection.rollback();
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				throw new RuntimeException("Database error;");
+			}
+		throw new RuntimeException("Database error;");
+		}finally{
+			if(connection!=null){
+				try {
+					connection.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					throw new RuntimeException("Unable to close connection.");
+				}
+			}
+			if(statement!=null){
+				try {
+					statement.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					throw new RuntimeException("Unable to close statement");
+				}
+			}
+		}
+		
+		
+	}
+
 }

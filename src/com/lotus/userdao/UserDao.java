@@ -12,6 +12,7 @@ public interface UserDao {
 	List<User> listUsers();
 	void addBalance(User user, BigDecimal balance);
 	User getUserByName(String name);
+	User getUserById(Long userId);
 	
 	
 }

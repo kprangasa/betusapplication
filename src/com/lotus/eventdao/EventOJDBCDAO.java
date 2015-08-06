@@ -84,6 +84,44 @@ public class EventOJDBCDAO implements EventDao {
 
 		return events;
 	}
+	@Override
+	public List<Event> getResultedEvents() {
+		Connection connection = null;
+		Statement statement = null;
+		List<Event> events = new ArrayList<Event>();
+
+		try {
+			connection = getConnection();
+			statement = connection.createStatement();
+			String sql = "SELECT * FROM events WHERE betStatus = 'RESULTED'";
+			ResultSet resultSet = statement.executeQuery(sql);
+			while (resultSet.next()) {
+				events.add(extractEventFromResult(resultSet));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new RuntimeException("Database error.");
+		} finally {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					throw new RuntimeException("Unable to close connection.");
+				}
+			}
+			if (statement != null) {
+				try {
+					statement.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					throw new RuntimeException("Unable to close statement");
+				}
+			}
+		}
+
+		return events;
+	}
 
 	@Override
 	public Event getEventByCode(String eventCode) {
@@ -127,6 +165,7 @@ public class EventOJDBCDAO implements EventDao {
 		}
 		return event;
 	}
+	
 
 	private static Event extractEventFromResult(ResultSet rs)
 			throws SQLException {
@@ -185,6 +224,7 @@ public class EventOJDBCDAO implements EventDao {
 		}
 
 	}
+	
 
 	@Override
 	public void updateEvent(Event existingEvent) {

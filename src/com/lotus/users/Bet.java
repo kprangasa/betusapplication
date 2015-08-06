@@ -12,7 +12,7 @@ public class Bet {
 	private Long customerId;
 	private BigDecimal amount;
 	private Long outcomeId;
-	
+	private boolean isSettled;
 	
 	public Bet(Long eventId, Long customerId, BigDecimal amount,
 			Long outcomeId, boolean isSettled) {
@@ -34,7 +34,7 @@ public class Bet {
 	public void setOutcomeId(Long outcomeId) {
 		this.outcomeId = outcomeId;
 	}
-	private boolean isSettled;
+	
 	
 	
 	public Long getId() {

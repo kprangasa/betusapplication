@@ -10,5 +10,7 @@ public interface EventDao {
 	void createEvent(Event newEvent);
 	void updateEvent(Event existingEvent);
 	Event getEventById(Long id);
+	List<Event> getResultedEvents();
+	
 	
 }

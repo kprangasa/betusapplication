@@ -91,9 +91,9 @@ public class Event {
 			System.out.println("Event created.");
 		} else {
 			this.setId(event.getId());
-			
+			this.betStatus = event.getBetStatus();
 			boolean hasChanged = !event.getSportsCode().equals(this.getSportsCode()) || event.getEventStartDate().compareTo(this.getEventStartDate())!=0;
-			if(hasChanged&&this.getBetStatus() == BetStatus.OPEN) {
+			if(hasChanged&&event.getBetStatus() == BetStatus.OPEN) {
 				System.out.println("Event to update :" + this);
 				eventDao.updateEvent(this);
 				System.out.println("Event updated :"+this);
@@ -102,5 +102,14 @@ public class Event {
 			}
 		}
 	}
-	
+
+
+
+//
+//	@Override
+//	public boolean equals(Object obj) {
+//		// TODO Auto-generated method stub
+//		return super.equals(obj);
+//	}
+//	
 }

@@ -94,7 +94,7 @@ public class BetusRestApi {
 		}
 
 
-		protected static User getLoggedInUser() {
+		public static User getLoggedInUser() {
 			if(BetusRestApi.loggedInUser == null){
 				return null;
 			}
